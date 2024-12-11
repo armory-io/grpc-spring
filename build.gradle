@@ -8,7 +8,7 @@ buildscript {
         }
     }
     ext {
-        projectVersion = '2.15.0.RELEASE'
+        projectVersion = '2.15.0.ARMORY'
 
         // https://github.com/grpc/grpc-java/releases
         grpcVersion = '1.58.0'
@@ -20,7 +20,7 @@ buildscript {
         protobufGradlePluginVersion = '0.9.4'
 
         // https://github.com/spring-projects/spring-boot/releases
-        springBootVersion = '2.7.16'
+        springBootVersion = '2.7.18'
         // https://github.com/spring-cloud/spring-cloud-release/releases
         springCloudVersion = '2021.0.8'
         // https://github.com/alibaba/spring-cloud-alibaba/releases
@@ -32,6 +32,15 @@ buildscript {
 
         // https://github.com/JetBrains/kotlin/releases
         kotlinVersion = "1.8.22"
+    }
+    dependencies {
+        classpath "org.ajoberstar.grgit:grgit-core:4.1.1"
+    }
+
+    configurations.classpath {
+        resolutionStrategy {
+            force 'org.ajoberstar.grgit:grgit-core:4.1.1'
+        }
     }
 }
 
@@ -259,7 +268,7 @@ allprojects { project ->
 
 apply from: './deploy.gradle'
 
-group = 'net.devh'
+group = 'com.armoryio'
 version = projectVersion
 
 dependencies {
