@@ -1,0 +1,50 @@
+name: Build armory version
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-rc.[0-9]+"
+
+jobs:
+  build:
+    name: build jar for grpc-starter
+    runs-on: ubuntu-latest
+    env:
+      ARTIFACTORY_URL: https://armory.jfrog.io/artifactory
+      ARTIFACTORY_REPO: gradle-dev-local
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: |
+            8
+          distribution: 'zulu'
+          cache: 'gradle'
+
+      - name: Assemble release info
+        id: release_info
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          . .github/workflows/release_info.sh ${{ github.event.repository.full_name }}
+          echo CHANGELOG=$(echo -e "${CHANGELOG}") >> $GITHUB_OUTPUT
+          echo SKIP_RELEASE="${SKIP_RELEASE}" >> $GITHUB_OUTPUT
+          echo IS_CANDIDATE="${IS_CANDIDATE}" >> $GITHUB_OUTPUT
+          echo RELEASE_VERSION="${RELEASE_VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Release build
+        env:
+          ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
+          ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
+        run: |
+          ./gradlew clean artifactoryPublish -PartifactoryUrl=${ARTIFACTORY_URL} -PartifactoryRepo=${ARTIFACTORY_REPO} -PartifactoryUsername=${ARTIFACTORY_USER} -PartifactoryPassword=${ARTIFACTORY_TOKEN}
+          
+          ./gradlew clean artifactoryPublish \
+             -Pversion=${{ steps.release_info.outputs.RELEASE_VERSION }} \
+             -PartifactoryUrl=${ARTIFACTORY_URL} \
+             -PartifactoryRepo=${ARTIFACTORY_REPO} \
+             -PartifactoryUsername=${ARTIFACTORY_USER} \
+             -PartifactoryPassword=${ARTIFACTORY_TOKEN}
