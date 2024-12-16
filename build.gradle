@@ -8,7 +8,7 @@ buildscript {
         }
     }
     ext {
-        projectVersion = '2.16.0'
+        projectVersion = '2.16.1'
 
         // https://github.com/grpc/grpc-java/releases
         grpcVersion = '1.45.1'
@@ -55,7 +55,8 @@ plugins {
     id 'com.github.ben-manes.versions' version "${versionsPluginVersion}" // gradle dependencyUpdates
     id 'com.diffplug.spotless' version '6.13.0'
     id 'org.jetbrains.kotlin.jvm' version "${kotlinVersion}" apply false
-    id "com.jfrog.artifactory" version "4.24.21"
+    id 'com.jfrog.artifactory' version '4.31.0'
+    id 'maven-publish'
 }
 
 // If you attempt to build without the `--scan` parameter in `gradle 6.0+` it will cause a build error that it can't find
@@ -76,6 +77,11 @@ wrapper {
 
 def buildTimeAndDate = OffsetDateTime.now()
 
+def artifactoryUrl = properties.get("artifactoryUrl")
+def artifactoryRepo = properties.get("artifactoryRepo")
+def artifactoryUsername = properties.get("artifactoryUsername")
+def artifactoryPassword = properties.get("artifactoryPassword")
+
 ext {
     buildDate = DateTimeFormatter.ISO_LOCAL_DATE.format(buildTimeAndDate)
     buildTime = DateTimeFormatter.ofPattern('HH:mm:ss.SSSZ').format(buildTimeAndDate)
@@ -89,11 +95,8 @@ allprojects {
     apply plugin: 'io.spring.dependency-management'
     apply plugin: 'com.diffplug.spotless'
     apply plugin: 'io.freefair.lombok'
-
-    def artifactoryUrl = properties.get("artifactoryUrl")
-    def artifactoryRepo = properties.get("artifactoryRepo")
-    def artifactoryUsername = properties.get("artifactoryUsername")
-    def artifactoryPassword = properties.get("artifactoryPassword")
+    apply plugin: 'maven-publish'
+    apply plugin: 'com.jfrog.artifactory'
 
     java {
         toolchain {
@@ -141,35 +144,6 @@ allprojects {
             }
         }
     }
-
-    // Copy LICENSE
-    tasks.withType(Jar) {
-        from(project.rootDir) {
-            include 'LICENSE'
-            into 'META-INF'
-        }
-    }
-
-    // Generate MANIFEST.MF
-    jar {
-        manifest {
-            attributes(
-                'Created-By': "${System.properties['java.version']} (${System.properties['java.vendor']} ${System.properties['java.vm.version']})".toString(),
-                'Built-By': 'travis',
-                'Build-Date': buildDate,
-                'Build-Time': buildTime,
-                'Built-OS': "${System.properties['os.name']}",
-                'Build-Revision': buildRevision,
-                'Specification-Title': project.name,
-                'Specification-Version': projectVersion,
-                'Specification-Vendor': 'Michael Zhang',
-                'Implementation-Title': project.name,
-                'Implementation-Version': projectVersion,
-                'Implementation-Vendor': 'Michael Zhang'
-            )
-        }
-    }
-
     repositories {
         mavenCentral()
     }
@@ -180,24 +154,32 @@ allprojects {
         }
     }
 
-    artifactory {
-        contextUrl = artifactoryUrl
+}
 
-        publish {
-            repository {
-                repoKey = artifactoryRepo
-                maven = true
-                username = artifactoryUsername
-                password = artifactoryPassword
-            }
-            defaults {
-                publications("mavenJava")
-                publishArtifacts = true
-                publishPom = true
-            }
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'maven-publish'
+    apply plugin: 'com.jfrog.artifactory'
+
+}
+
+artifactory {
+    contextUrl = artifactoryUrl
+
+    publish {
+        repository {
+            repoKey = artifactoryRepo
+            maven = true
+            username = artifactoryUsername
+            password = artifactoryPassword
         }
-        clientConfig.info.setBuildStarted(System.currentTimeMillis())
+        defaults {
+            publications("mavenJava")
+            publishArtifacts = true
+            publishPom = true
+        }
     }
+    clientConfig.info.setBuildStarted(System.currentTimeMillis())
 }
 
 Project commonProject = project(':grpc-common-spring-boot')

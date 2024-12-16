@@ -41,7 +41,7 @@ jobs:
           ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
         run: |
           ./gradlew clean artifactoryPublish -PartifactoryUrl=${ARTIFACTORY_URL} -PartifactoryRepo=${ARTIFACTORY_REPO} -PartifactoryUsername=${ARTIFACTORY_USER} -PartifactoryPassword=${ARTIFACTORY_TOKEN}
-          
+
           ./gradlew clean artifactoryPublish \
              -Pversion=${{ steps.release_info.outputs.RELEASE_VERSION }} \
              -PartifactoryUrl=${ARTIFACTORY_URL} \
